@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+tmp
+.idea
+.vscode
+venv
+.wav
+.ogg
+sphi_test.py
+test.py
+test_p.py
+ffmpeg
+.txt
+coursekey
+coursekey.pub
