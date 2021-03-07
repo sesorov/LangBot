@@ -43,8 +43,8 @@ def voice_to_text(update: Update, context: CallbackContext) -> None:  # ЧАСТ
 
     :param update: Telegram Update class instance
     :param context: Telegram CallbackContext (unused)
-    :return: List of phonemes (SIL is "silence")
-    :rtype: list
+    :return: Sends message to the chat
+    :rtype: None
     """
     if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
         return
@@ -57,13 +57,14 @@ def voice_to_text(update: Update, context: CallbackContext) -> None:  # ЧАСТ
     data, sample_rate = librosa.load(file_path, sr=16000, mono=True)
     sf.write(wav_path, data, sample_rate)
 
-    update.effective_message.reply_text(proc.get_phonemes(wav_path))
+    phonemes = proc.get_phonemes(wav_path)
+    update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
     proc.get_words(wav_path)
     p = f"{update.message.message_id}"
     c = r"F:\LangBot\myprosody"  # an example of path to directory "myprosody"
-    update.effective_message.reply_text(mysp.mysppron(p, c))
+    update.effective_message.reply_text(proc.levenshtein_distance(phonemes, 'speech'))
     os.remove(file_path)
-    os.remove(f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.TextGrid')
-    os.remove(f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav')
+    #os.remove(f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.TextGrid')
+    #os.remove(f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav')
 
     to_gs = update.message.voice.duration > 58
