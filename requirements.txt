@@ -1,0 +1,7 @@
+python-telegram-bot
+python-telegram-bot[socks]
+myprosody~=20
+librosa~=0.8.0
+SoundFile~=0.10.3.post1
+pydub~=0.24.1
+pocketsphinx~=0.1.15
