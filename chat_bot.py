@@ -65,7 +65,7 @@ def main():
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
 
     # handle voice messages
-    updater.dispatcher.add_handler(MessageHandler(Filters.voice, tg.voice_to_text))
+    updater.dispatcher.add_handler(MessageHandler(Filters.voice, tg.voice_to_phonemes))
 
     # log all errors
     updater.dispatcher.add_error_handler(error)

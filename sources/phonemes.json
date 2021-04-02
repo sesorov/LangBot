@@ -1,0 +1,164 @@
+{
+  "consonants":
+  {
+    "B":
+    {
+      "examples": ["bug", "bubble"]
+    },
+    "D":
+    {
+      "examples": ["dad", "add", "dog", "duck"]
+    },
+    "F":
+    {
+      "examples": ["fat", "cliff", "phone", "enough", "half", "often"]
+    },
+    "G":
+    {
+      "examples": ["gun", "egg", "ghost", "guest", "prologue"]
+    },
+    "HH":
+    {
+      "examples": ["hop", "who", "hat"]
+    },
+    "JH":
+    {
+      "examples": ["jam", "gin", "wage", "giraffe", "edge", "soldier", "exaggerate"]
+    },
+    "K":
+    {
+      "examples": ["kit", "cat", "chris", "accent", "folk", "bouquet", "queen", "rack", "box"]
+    },
+    "L":
+    {
+      "examples": ["live", "well"]
+    },
+    "M":
+    {
+      "examples": ["man", "summer", "comb", "column", "palm"]
+    },
+    "N":
+    {
+      "examples": ["net", "funny", "know", "gnat", "pneumonic", "knee"]
+    },
+    "P":
+    {
+      "examples": ["pin", "dippy"]
+    },
+    "R":
+    {
+      "examples": ["read", "run", "carrot", "wrench", "rhyme"]
+    },
+    "S":
+    {
+      "examples": ["sit", "less", "circle", "scene", "psycho", "listen", "pace", "course"	]
+    },
+    "T":
+    {
+      "examples": ["tip", "matter", "thomas", "ripped"]
+    },
+    "V":
+    {
+      "examples": ["vine", "of", "stephen", "five"]
+    },
+    "W":
+    {
+      "examples": ["wit", "why", "quick"]
+    },
+    "Z":
+    {
+      "examples": ["zed", "buzz", "his", "scissors", "xylophone", "craze"]
+    },
+    "ZH":
+    {
+      "examples": ["treasure", "division", "azure", "seizure"]
+    },
+    "CH":
+    {
+      "examples": ["cheese", "chip", "watch", "future", "action", "righteous"]
+    },
+    "SH":
+    {
+      "examples": ["sham", "ocean", "sure", "special", "pension", "machine", "conscience", "station"]
+    },
+    "TH":
+    {
+      "examples": ["theta", "thick", "thin", "myth", "tenth"]
+    },
+    "DH":
+    {
+      "examples": ["bathe", "leather", "although", "together", "bother"]
+    },
+    "NG":
+    {
+      "examples": ["ping", "bowling", "walking", "tongue", "ring"]
+    },
+    "Y":
+    {
+      "examples": ["yield", "european", "confuse", "perfume"]
+    }
+  },
+  "vowels":
+  {
+    "AA":
+    {
+      "examples": ["odd", "novels", "prompt", "armor", "apologise"]
+    },
+    "AE":
+    {
+      "examples": ["at", "ant", "disaster", "bank"]
+    },
+    "AH":
+    {
+      "examples": ["disable", "component", "must", "polite"]
+    },
+    "AO":
+    {
+      "examples": ["ought", "torch", "born", "board"]
+    },
+    "AW":
+    {
+      "examples": ["cow", "down", "out", "hour"]
+    },
+    "AY":
+    {
+      "examples": ["hide", "spider", "sky", "island", "height"]
+    },
+    "EH":
+    {
+      "examples": ["end", "bread", "bury", "friend", "said", "many"]
+    },
+    "ER":
+    {
+      "examples": ["hurt", "bird", "pearl", "word", "journey", "burn"]
+    },
+    "EY":
+    {
+      "examples": ["bay", "ate", "straight", "break"]
+    },
+    "IH":
+    {
+      "examples": ["it", "women", "gym", "guild", "busy"]
+    },
+    "IY":
+    {
+      "examples": ["eat", "bee", "meat", "ski", "deceive", "people"]
+    },
+    "OW":
+    {
+      "examples": ["open", "bone", "phone"]
+    },
+    "OY":
+    {
+      "examples": ["toy", "join", "boy", "point"]
+    },
+    "UH":
+    {
+      "examples": ["hood", "wolf", "look", "would"]
+    },
+    "UW":
+    {
+      "examples": ["two", "who", "blue", "flute", "shoe", "fruit"]
+    }
+  }
+}

@@ -33,7 +33,7 @@ def command_start(update: Update, context: CallbackContext):
     return update.effective_user.first_name
 
 
-def voice_to_text(update: Update, context: CallbackContext) -> None:  # ЧАСТОТА: 16/32 кГц, МОНО
+def voice_to_phonemes(update: Update, context: CallbackContext) -> list:  # ЧАСТОТА: 16/32 кГц, МОНО
     """ This function prints phonemes of voice speech
 
     Function gets voice file by message id, temporarily puts voice .ogg file to directory
@@ -43,11 +43,11 @@ def voice_to_text(update: Update, context: CallbackContext) -> None:  # ЧАСТ
 
     :param update: Telegram Update class instance
     :param context: Telegram CallbackContext (unused)
-    :return: Sends message to the chat
-    :rtype: None
+    :return: Sends message to the chat and returns list of phonemes, eg. ['W', 'UW', 'P', 'S']
+    :rtype: list
     """
     if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
-        return
+        return []
     chat_id = update.message.chat.id
     file_path = f"{chat_id}\\voices\\{update.message.message_id}.ogg"
     wav_path = f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav'
@@ -60,11 +60,10 @@ def voice_to_text(update: Update, context: CallbackContext) -> None:  # ЧАСТ
     phonemes = proc.get_phonemes(wav_path)
     update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
     proc.get_words(wav_path)
-    p = f"{update.message.message_id}"
-    c = r"F:\LangBot\myprosody"  # an example of path to directory "myprosody"
     update.effective_message.reply_text(proc.levenshtein_distance(phonemes, 'speech'))
     os.remove(file_path)
-    #os.remove(f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.TextGrid')
-    #os.remove(f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav')
+    return phonemes
 
-    to_gs = update.message.voice.duration > 58
+
+def begin_test(update: Update, context: CallbackContext) -> None:
+    update.effective_message.reply_text(f"")
