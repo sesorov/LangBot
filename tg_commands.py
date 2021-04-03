@@ -10,14 +10,11 @@ import processing.functions as proc
 from pathlib import Path
 from datetime import datetime, timezone
 
-from sphi_test import test_voice
-
 from telegram import Update, ParseMode, Bot, ChatAction, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 from telegram.ext import CallbackContext
 from setup import TOKEN, PROXY
 from telegram.ext import Filters
 from telegram.error import TimedOut
-from telegram import ChatAction, Update
 
 bot = Bot(
     token=TOKEN,

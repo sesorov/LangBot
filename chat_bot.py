@@ -3,10 +3,12 @@
 
 import logging
 import tg_commands as tg
+import processing.functions as proc
 
 from setup import PROXY, TOKEN
 from telegram import Bot, Update
-from telegram.ext import CallbackContext, CommandHandler, Filters, MessageHandler, Updater
+from study.inline_handler import InlineCallback
+from telegram.ext import CallbackContext, CommandHandler, Filters, MessageHandler, Updater, CallbackQueryHandler
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -65,7 +67,10 @@ def main():
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
 
     # handle voice messages
-    updater.dispatcher.add_handler(MessageHandler(Filters.voice, tg.voice_to_phonemes))
+    updater.dispatcher.add_handler(MessageHandler(Filters.voice, proc.handle_voice))
+
+    # inline handler
+    updater.dispatcher.add_handler(CallbackQueryHandler(callback=InlineCallback.handle_keyboard_callback))
 
     # log all errors
     updater.dispatcher.add_error_handler(error)

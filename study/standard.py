@@ -1,4 +1,6 @@
+import os
 import json
+import pickle
 
 
 class PhoneDict:
@@ -26,6 +28,18 @@ class PhoneDict:
                 return {'phone': element[0], 'examples': element[1]['examples']}
             else:
                 raise StopIteration
+
+    def get_current(self):
+        if self.iter_type:
+            element = tuple(self.data['vowels'].items())[self.current]
+            return {'phone': element[0], 'examples': element[1]['examples']}
+        else:
+            element = tuple(self.data['consonants'].items())[self.current]
+            return {'phone': element[0], 'examples': element[1]['examples']}
+
+    def save_current_dict(self, path):
+        with open(os.path.join(path, 'phone_dict.pkl'), 'wb+') as save:
+            pickle.dump(self, save, pickle.HIGHEST_PROTOCOL)
 
     def __load_dict(self):
         with open(self.path, 'r') as handle:

@@ -1,8 +1,106 @@
 import os
 import numpy as np
+import librosa
+import soundfile as sf
 
 from os import path
 from pocketsphinx.pocketsphinx import *
+from telegram import Update, ParseMode, Bot, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
+from telegram.ext import CallbackContext
+from setup import TOKEN, PROXY
+from study.standard import *
+from datetime import datetime, timezone
+from pathlib import Path
+from study.inline_handler import InlineKeyboardFactory as keyboard
+
+
+bot = Bot(
+    token=TOKEN,
+    base_url=PROXY,  # delete it if connection via VPN
+)
+
+
+def handle_voice(update: Update, context: CallbackContext):
+    chat_id = update.message.chat.id
+    user_data = Path(f"./{chat_id}/personal/testing.json")
+    is_testing = False
+    if user_data.is_file():
+        with open(user_data, 'r') as handle:
+            is_testing = json.load(handle)['is_testing']
+    else:
+        with open(user_data, 'w+') as handle:
+            json.dump({'is_testing': False, 'best_score': 0}, handle, indent=4)
+    if is_testing:
+        voice_to_phonemes(update)
+        display_question(update, phones=unpack_phone_dict(chat_id))
+    else:
+        update.effective_message.reply_text(text='You need to begin a test firstly to check your pronunciation.\n' +
+                                                 'Please, choose the sounds to test:',
+                                            reply_markup=keyboard.get_phone_type_keyboard())
+
+
+def display_question(update: Update, phones: PhoneDict, is_next=False):
+    chat_id = update.effective_message.chat_id
+    try:
+        if is_next:
+            current = phones.__next__()
+            update_user_test_data(chat_id=chat_id, data=current)
+            update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['examples'][0]}")
+            phones.save_current_dict(f"./{chat_id}/personal")
+        else:
+            current = get_user_test_data(chat_id)
+            current['examples'].pop(0)
+            update_user_test_data(chat_id, current)
+            update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['examples'][0]}")
+    except StopIteration:
+        update_user_test_data(chat_id, data={'is_testing': False})
+        update.effective_message.reply_text(text='This is the end of the test.')
+
+
+def unpack_phone_dict(chat_id):
+    import pickle
+
+    with open(f"./{chat_id}/personal/phone_dict.pkl", 'rb') as load:
+        return pickle.load(load)
+
+
+def get_user_test_data(chat_id):
+    datafile = Path(f"./{chat_id}/personal/testing.json")
+    user_data = {}
+    if datafile.is_file():
+        with open(datafile, 'r') as handle:
+            user_data = json.load(handle)
+    return user_data
+
+
+def update_user_test_data(chat_id, data: dict):
+    datafile = Path(f"./{chat_id}/personal/testing.json")
+    user_data = {}
+    if datafile.is_file():
+        with open(datafile, 'r') as handle:
+            user_data = json.load(handle)
+    user_data.update(data)
+    with open(datafile, 'w+') as handle:
+        json.dump(user_data, handle, indent=4)
+
+
+def voice_to_phonemes(update: Update):
+    if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
+        return []
+    chat_id = update.message.chat.id
+    file_path = f"{chat_id}\\voices\\{update.message.message_id}.ogg"
+    wav_path = f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav'
+
+    update.message.voice.get_file().download(custom_path=file_path)
+
+    data, sample_rate = librosa.load(file_path, sr=16000, mono=True)
+    sf.write(wav_path, data, sample_rate)
+
+    phonemes = get_phonemes(wav_path)
+    update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
+    update.effective_message.reply_text(levenshtein_distance(phonemes, 'speech'))
+    os.remove(file_path)
+    return phonemes
 
 
 def get_phonemes(voice_path: str) -> list:
