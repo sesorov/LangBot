@@ -8,11 +8,10 @@ from pocketsphinx.pocketsphinx import *
 from telegram import Update, ParseMode, Bot, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 from telegram.ext import CallbackContext
 from setup import TOKEN, PROXY
-from study.standard import *
+from study.dict_controller import *
 from datetime import datetime, timezone
 from pathlib import Path
 from study.inline_handler import InlineKeyboardFactory as keyboard
-
 
 bot = Bot(
     token=TOKEN,
@@ -22,38 +21,30 @@ bot = Bot(
 
 def handle_voice(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
-    user_data = Path(f"./{chat_id}/personal/testing.json")
-    is_testing = False
-    if user_data.is_file():
-        with open(user_data, 'r') as handle:
-            is_testing = json.load(handle)['is_testing']
-    else:
-        with open(user_data, 'w+') as handle:
-            json.dump({'is_testing': False, 'best_score': 0}, handle, indent=4)
-    if is_testing:
-        voice_to_phonemes(update)
-        display_question(update, phones=unpack_phone_dict(chat_id))
-    else:
-        update.effective_message.reply_text(text='You need to begin a test firstly to check your pronunciation.\n' +
-                                                 'Please, choose the sounds to test:',
-                                            reply_markup=keyboard.get_phone_type_keyboard())
+
+    # Getting current user state
+    try:
+        phones = unpack_phone_dict(chat_id)
+        if phones.is_testing:
+            voice_to_phonemes(update, phones.current_example_word)
+            display_question(update, phones)
+            return
+    except FileNotFoundError:
+        # User hasn't yet started the test
+        pass
+    update.effective_message.reply_text(text='You need to begin a test firstly to check your pronunciation.\n' +
+                                             'Please, choose the sounds to test:',
+                                        reply_markup=keyboard.get_phone_type_keyboard())
 
 
-def display_question(update: Update, phones: PhoneDict, is_next=False):
+def display_question(update: Update, phones: PhoneDict):
     chat_id = update.effective_message.chat_id
     try:
-        if is_next:
-            current = phones.__next__()
-            update_user_test_data(chat_id=chat_id, data=current)
-            update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['examples'][0]}")
-            phones.save_current_dict(f"./{chat_id}/personal")
-        else:
-            current = get_user_test_data(chat_id)
-            current['examples'].pop(0)
-            update_user_test_data(chat_id, current)
-            update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['examples'][0]}")
+        current = phones.__next__()
+        update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['example']}")
+        phones.save_current_dict(f"./{chat_id}/personal")
     except StopIteration:
-        update_user_test_data(chat_id, data={'is_testing': False})
+        phones.is_testing = False
         update.effective_message.reply_text(text='This is the end of the test.')
 
 
@@ -84,7 +75,7 @@ def update_user_test_data(chat_id, data: dict):
         json.dump(user_data, handle, indent=4)
 
 
-def voice_to_phonemes(update: Update):
+def voice_to_phonemes(update: Update, example_word: str = None):
     if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
         return []
     chat_id = update.message.chat.id
@@ -98,7 +89,8 @@ def voice_to_phonemes(update: Update):
 
     phonemes = get_phonemes(wav_path)
     update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
-    update.effective_message.reply_text(levenshtein_distance(phonemes, 'speech'))
+    if example_word:
+        update.effective_message.reply_text(f"Rate: {levenshtein_distance(phonemes, example_word)} (lower is better)")
     os.remove(file_path)
     return phonemes
 

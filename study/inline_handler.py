@@ -3,7 +3,7 @@ import telegram
 import json
 from telegram import Update, ParseMode, Bot, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 from setup import TOKEN, PROXY
-from study.standard import *
+from study.dict_controller import *
 
 CALLBACK_BUTTON_CONSONANTS = "test_consonants"
 CALLBACK_BUTTON_VOWELS = "test_vowels"
@@ -38,11 +38,11 @@ class InlineCallback:
         import processing.functions as proc
 
         if data == CALLBACK_BUTTON_CONSONANTS:
-            consonants = PhoneDict(iter_type=0)
-            proc.update_user_test_data(chat_id, data={'is_testing': True})
-            proc.display_question(update, consonants, is_next=True)
+            consonants = PhoneDict(phone_type=0, auto_next=True, iter_type=0)
+            consonants.is_testing = True
+            proc.display_question(update, consonants)
 
         elif data == CALLBACK_BUTTON_VOWELS:
-            vowels = PhoneDict(iter_type=1)
-            proc.update_user_test_data(chat_id, data={'is_testing': True})
-            proc.display_question(update, vowels, is_next=True)
+            vowels = PhoneDict(phone_type=1, auto_next=True, iter_type=0)
+            vowels.is_testing = True
+            proc.display_question(update, vowels)
