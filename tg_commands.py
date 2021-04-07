@@ -7,6 +7,7 @@ import soundfile as sf
 import myprosody as mysp
 import processing.functions as proc
 
+from study.inline_handler import InlineKeyboardFactory as keyboard
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -27,6 +28,7 @@ def command_start(update: Update, context: CallbackContext):
     update.message.reply_text(f'Hi, {update.effective_user.first_name}!')
     update.message.reply_text('Please, type <b>/help</b> to see the list of commands.',
                               parse_mode=ParseMode.HTML)
+    update.message.reply_text('Choose the processing model type:', reply_markup=keyboard.get_model_type_keyboard())
     return update.effective_user.first_name
 
 

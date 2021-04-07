@@ -5,19 +5,22 @@ import pickle
 
 class PhoneDict:
     def __init__(self, path=None, phone_type=False, iter_type=False, auto_next=True):
-        self.is_testing = False
 
+        # Current testing data
         self.current_phone_id = -1
         self.current_phone = ''
         self.current_examples = []
         self.current_example_word = ''
 
+        # Path to source dict json (consonants and vowels)
         self.path = path if path else './sources/phonemes.json'
 
+        # Dict parameters
         self.phone_type = phone_type  # 0 - consonants, 1 - vowels
         self.iter_type = iter_type  # 0 - examples, 1 - phones
         self.auto_next = auto_next
 
+        # Get data not to access file multiple times
         self.data = self.__load_dict()
 
     def __iter__(self):

@@ -4,9 +4,14 @@ import json
 from telegram import Update, ParseMode, Bot, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 from setup import TOKEN, PROXY
 from study.dict_controller import *
+from study.user import User
+
+CALLBACK_BUTTON_HMM = "model_hmm_sphinx"
+CALLBACK_BUTTON_NEURAL = "model_neural_azure"
 
 CALLBACK_BUTTON_CONSONANTS = "test_consonants"
 CALLBACK_BUTTON_VOWELS = "test_vowels"
+CALLBACK_BUTTON_FINISH_TEST = "test_finish"
 
 bot = Bot(
     token=TOKEN,
@@ -27,6 +32,27 @@ class InlineKeyboardFactory:
         ]
         return InlineKeyboardMarkup(keyboard)
 
+    @staticmethod
+    def get_finish_test_keyboard() -> InlineKeyboardMarkup:
+        keyboard = [
+            [
+                InlineKeyboardButton("Stop checking and view results", callback_data=CALLBACK_BUTTON_FINISH_TEST)
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
+    @staticmethod
+    def get_model_type_keyboard() -> InlineKeyboardMarkup:
+        keyboard = [
+            [
+                InlineKeyboardButton("Hidden Markov Model", callback_data=CALLBACK_BUTTON_HMM)
+            ],
+            [
+                InlineKeyboardButton("Neural Network (Azure Speech)", callback_data=CALLBACK_BUTTON_NEURAL)
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
 
 class InlineCallback:
     @staticmethod
@@ -37,12 +63,36 @@ class InlineCallback:
 
         import processing.functions as proc
 
-        if data == CALLBACK_BUTTON_CONSONANTS:
+        if data == CALLBACK_BUTTON_HMM:
+            user = User(chat_id, is_testing=False, phone_dict=None, model_type=0)
+            user.save_data()
+            update.effective_message.reply_text(text='Please, choose the phonetics to test:',
+                                                reply_markup=InlineKeyboardFactory.get_phone_type_keyboard())
+
+        elif data == CALLBACK_BUTTON_NEURAL:
+            user = User(chat_id, is_testing=False, phone_dict=None, model_type=1)
+            user.save_data()
+            update.effective_message.reply_text(text='Please, choose the phonetics to test:',
+                                                reply_markup=InlineKeyboardFactory.get_phone_type_keyboard())
+
+        elif data == CALLBACK_BUTTON_CONSONANTS:
             consonants = PhoneDict(phone_type=0, auto_next=True, iter_type=0)
-            consonants.is_testing = True
-            proc.display_question(update, consonants)
+            user = proc.unpack_user_data(chat_id)
+            user.is_testing = True
+            user.phone_dict = consonants
+            user.save_data()
+            proc.display_question(update)
 
         elif data == CALLBACK_BUTTON_VOWELS:
             vowels = PhoneDict(phone_type=1, auto_next=True, iter_type=0)
-            vowels.is_testing = True
-            proc.display_question(update, vowels)
+            user = proc.unpack_user_data(chat_id)
+            user.is_testing = True
+            user.phone_dict = vowels
+            user.save_data()
+            proc.display_question(update)
+
+        elif data == CALLBACK_BUTTON_FINISH_TEST:
+            user = proc.unpack_user_data(chat_id)
+            user.is_testing = False
+            user.save_data()
+            #proc.summary_test(chat_id)

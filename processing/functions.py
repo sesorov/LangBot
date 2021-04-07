@@ -12,6 +12,7 @@ from study.dict_controller import *
 from datetime import datetime, timezone
 from pathlib import Path
 from study.inline_handler import InlineKeyboardFactory as keyboard
+from azure_speech.analysis import Analysis
 
 bot = Bot(
     token=TOKEN,
@@ -24,10 +25,10 @@ def handle_voice(update: Update, context: CallbackContext):
 
     # Getting current user state
     try:
-        phones = unpack_phone_dict(chat_id)
-        if phones.is_testing:
-            voice_to_phonemes(update, phones.current_example_word)
-            display_question(update, phones)
+        user = unpack_user_data(chat_id)
+        if user.is_testing:
+            voice_to_phonemes(update, user.phone_dict.current_example_word)
+            display_question(update)
             return
     except FileNotFoundError:
         # User hasn't yet started the test
@@ -37,14 +38,16 @@ def handle_voice(update: Update, context: CallbackContext):
                                         reply_markup=keyboard.get_phone_type_keyboard())
 
 
-def display_question(update: Update, phones: PhoneDict):
+def display_question(update: Update):
     chat_id = update.effective_message.chat_id
+    user = unpack_user_data(chat_id)
     try:
-        current = phones.__next__()
+        current = user.phone_dict.__next__()
         update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['example']}")
-        phones.save_current_dict(f"./{chat_id}/personal")
+        user.save_data()
+        #phones.save_current_dict(f"./{chat_id}/personal")
     except StopIteration:
-        phones.is_testing = False
+        user.phone_dict.is_testing = False
         update.effective_message.reply_text(text='This is the end of the test.')
 
 
@@ -52,6 +55,13 @@ def unpack_phone_dict(chat_id):
     import pickle
 
     with open(f"./{chat_id}/personal/phone_dict.pkl", 'rb') as load:
+        return pickle.load(load)
+
+
+def unpack_user_data(chat_id):
+    import pickle
+
+    with open(f"./{chat_id}/personal/user.pkl", 'rb') as load:
         return pickle.load(load)
 
 
@@ -91,6 +101,14 @@ def voice_to_phonemes(update: Update, example_word: str = None):
     update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
     if example_word:
         update.effective_message.reply_text(f"Rate: {levenshtein_distance(phonemes, example_word)} (lower is better)")
+        analysis = Analysis(chat_id)
+        result = analysis.analyse_and_save(wav_path, example_word)
+        update.effective_message.reply_text(f"Pronunciation score: {result['pronunciation_score']} (higher is better)" +
+                                            f"\nAccuracy score: {result['accuracy_score']}" +
+                                            f"\nCompleteness score: {result['completeness_score']}" +
+                                            f"\nFluency score: {result['fluency_score']}" +
+                                            f"\nError type: {result['error_type']}" +
+                                            f"\nPhonemes list: {' '.join(result['phonemes'])}")
     os.remove(file_path)
     return phonemes
 

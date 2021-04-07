@@ -60,7 +60,7 @@ def main():
     updater = Updater(TOKEN, request_kwargs=REQUEST_KWARGS, use_context=True)
 
     # on different commands - answer in Telegram
-    updater.dispatcher.add_handler(CommandHandler('start', start))
+    updater.dispatcher.add_handler(CommandHandler('start', tg.command_start))
     updater.dispatcher.add_handler(CommandHandler('help', chat_help))
 
     # on noncommand i.e message - echo the message on Telegram
