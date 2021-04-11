@@ -27,7 +27,7 @@ def handle_voice(update: Update, context: CallbackContext):
     try:
         user = unpack_user_data(chat_id)
         if user.is_testing:
-            voice_to_phonemes(update, user.phone_dict.current_example_word)
+            voice_analyze_hmm(update, user.phone_dict.current_example_word)
             display_question(update)
             return
     except FileNotFoundError:
@@ -45,7 +45,6 @@ def display_question(update: Update):
         current = user.phone_dict.__next__()
         update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['example']}")
         user.save_data()
-        #phones.save_current_dict(f"./{chat_id}/personal")
     except StopIteration:
         user.phone_dict.is_testing = False
         update.effective_message.reply_text(text='This is the end of the test.')
@@ -85,7 +84,11 @@ def update_user_test_data(chat_id, data: dict):
         json.dump(user_data, handle, indent=4)
 
 
-def voice_to_phonemes(update: Update, example_word: str = None):
+def voice_analyze_neural(update: Update, example_word: str = None):
+    pass
+
+
+def voice_analyze_hmm(update: Update, example_word: str = None):
     if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
         return []
     chat_id = update.message.chat.id

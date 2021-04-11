@@ -3,9 +3,10 @@ import pickle
 
 
 class User:
-    def __init__(self, chat_id, is_testing=False, phone_dict=None, model_type=False):
+    def __init__(self, chat_id, mode=None, is_testing=False, phone_dict=None, model_type=False):
         self.chat_id = chat_id
         self.is_testing = is_testing
+        self.mode = mode
         self.phone_dict = phone_dict
         self.model_type = model_type  # 0 is HMM, 1 is Neural network
 

@@ -9,6 +9,10 @@ from study.user import User
 CALLBACK_BUTTON_HMM = "model_hmm_sphinx"
 CALLBACK_BUTTON_NEURAL = "model_neural_azure"
 
+CALLBACK_BUTTON_EACH = "test_each_phoneme"
+CALLBACK_BUTTON_COMPLEX = "test_random_5"
+CALLBACK_BUTTON_SURVEY = "test_3c_3v"
+
 CALLBACK_BUTTON_CONSONANTS = "test_consonants"
 CALLBACK_BUTTON_VOWELS = "test_vowels"
 CALLBACK_BUTTON_FINISH_TEST = "test_finish"
@@ -20,6 +24,21 @@ bot = Bot(
 
 
 class InlineKeyboardFactory:
+    @staticmethod
+    def get_learn_mode_keyboard() -> InlineKeyboardMarkup:
+        keyboard = [
+            [
+                InlineKeyboardButton("Each phoneme", callback_data=CALLBACK_BUTTON_EACH)
+            ],
+            [
+                InlineKeyboardButton("Complex", callback_data=CALLBACK_BUTTON_COMPLEX)
+            ],
+            [
+                InlineKeyboardButton("Survey", callback_data=CALLBACK_BUTTON_SURVEY)
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
+
     @staticmethod
     def get_phone_type_keyboard() -> InlineKeyboardMarkup:
         keyboard = [
@@ -66,13 +85,33 @@ class InlineCallback:
         if data == CALLBACK_BUTTON_HMM:
             user = User(chat_id, is_testing=False, phone_dict=None, model_type=0)
             user.save_data()
-            update.effective_message.reply_text(text='Please, choose the phonetics to test:',
-                                                reply_markup=InlineKeyboardFactory.get_phone_type_keyboard())
+            update.effective_message.reply_text(text='Please, select learning mode:',
+                                                reply_markup=InlineKeyboardFactory.get_learn_mode_keyboard())
 
         elif data == CALLBACK_BUTTON_NEURAL:
             user = User(chat_id, is_testing=False, phone_dict=None, model_type=1)
             user.save_data()
-            update.effective_message.reply_text(text='Please, choose the phonetics to test:',
+            update.effective_message.reply_text(text='Please, select learning mode:',
+                                                reply_markup=InlineKeyboardFactory.get_learn_mode_keyboard())
+
+        elif data == CALLBACK_BUTTON_COMPLEX:
+            user = proc.unpack_user_data(chat_id)
+            user.mode = CALLBACK_BUTTON_COMPLEX
+            user.save_data()
+            rnd_5 = PhoneDict
+            # RANDOM 5 WORDS DICT
+
+        elif data == CALLBACK_BUTTON_SURVEY:
+            user = proc.unpack_user_data(chat_id)
+            user.mode = CALLBACK_BUTTON_COMPLEX
+            user.save_data()
+            # RANDOM 3 CONSONANTS, 3 VOWELS, MISTAKES => REPEAT
+
+        elif data == CALLBACK_BUTTON_EACH:
+            user = proc.unpack_user_data(chat_id)
+            user.mode = CALLBACK_BUTTON_EACH
+            user.save_data()
+            update.effective_message.reply_text(text='Please, select phonemes:',
                                                 reply_markup=InlineKeyboardFactory.get_phone_type_keyboard())
 
         elif data == CALLBACK_BUTTON_CONSONANTS:
