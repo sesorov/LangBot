@@ -35,7 +35,7 @@ class PhoneDict:
             if self.is_custom:
                 if self.current_phone_id < len(self.data):
                     element = tuple(self.data.items())[self.current_phone_id]
-                    self.current_examples = element[1]
+                    self.current_examples = element[1]['examples']
                     self.current_phone = element[0]
                     return {'phone': self.current_phone, 'examples': self.current_examples}
                 else:
@@ -77,19 +77,21 @@ class PhoneDict:
                     raise StopIteration
 
     def get_current(self):
-        if self.iter_type:
-            element = tuple(self.data['vowels'].items())[self.current_phone_id]
-            return {'phone': element[0], 'examples': element[1]['examples']}
+        if self.is_custom:
+            element = tuple(self.data.items())[self.current_phone_id]
         else:
-            element = tuple(self.data['consonants'].items())[self.current_phone_id]
-            return {'phone': element[0], 'examples': element[1]['examples']}
+            if self.iter_type:
+                element = tuple(self.data['vowels'].items())[self.current_phone_id]
+            else:
+                element = tuple(self.data['consonants'].items())[self.current_phone_id]
+        return {'phone': element[0], 'examples': element[1]['examples'], 'help': element[1]['help']}
 
     def save_current_dict(self, path):
         with open(os.path.join(path, 'phone_dict.pkl'), 'wb+') as save:
             pickle.dump(self, save, pickle.HIGHEST_PROTOCOL)
 
     def __load_dict(self):
-        with open(self.path, 'r') as handle:
+        with open(self.path, 'r', encoding='utf-8') as handle:
             return json.load(handle)
 
     def get_consonants(self) -> list:
@@ -98,7 +100,20 @@ class PhoneDict:
     def get_vowels(self) -> list:
         return [v[0] for v in tuple(self.data['vowels'].items())]
 
-    def get_n_random(self, n: int):
-        all_phones = self.get_consonants() + self.get_vowels()
-        rnd_n = random.sample(all_phones, n)
-        return {rnd: self.data['consonants'].get(rnd, self.data['vowels'].get(rnd))['examples'] for rnd in rnd_n}
+    def get_n_random(self, n: int = None, n_consonants: int = None, n_vowels: int = None, one_example: bool = False):
+        if n:
+            all_phones = self.get_consonants() + self.get_vowels()
+            rnd_n = random.sample(all_phones, n)
+            if one_example:
+                return {rnd: random.choice([self.data['consonants'].get(rnd,
+                                            self.data['vowels'].get(rnd))]) for rnd in rnd_n}
+            return {rnd: self.data['consonants'].get(rnd, self.data['vowels'].get(rnd)) for rnd in rnd_n}
+        rnd_n = []
+        if n_consonants:
+            rnd_n += random.sample(self.get_consonants(), n_consonants)
+        if n_vowels:
+            rnd_n += random.sample(self.get_vowels(), n_vowels)
+        return {rnd: random.choice([self.data['consonants'].get(rnd, self.data['vowels'].get(rnd))])
+                for rnd in rnd_n} if one_example \
+            else {rnd: self.data['consonants'].get(rnd, self.data['vowels'].get(rnd)) for rnd in rnd_n}
+

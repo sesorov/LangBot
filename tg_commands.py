@@ -62,7 +62,7 @@ def voice_to_phonemes(update: Update, context: CallbackContext) -> list:  # ЧА
     phonemes = proc.get_phonemes(wav_path)
     update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
     proc.get_words(wav_path)
-    update.effective_message.reply_text(proc.levenshtein_distance(phonemes, 'speech'))
+    update.effective_message.reply_text(proc.levenshtein_distance_sphinx(phonemes, 'speech'))
     os.remove(file_path)
     return phonemes
 
