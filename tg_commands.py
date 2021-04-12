@@ -1,23 +1,22 @@
 import json
 import csv
 import os
+import pathlib
 
 import librosa
 import soundfile as sf
 import myprosody as mysp
 import processing.functions as proc
 
+from study.inline_handler import InlineKeyboardFactory as keyboard
 from pathlib import Path
 from datetime import datetime, timezone
-
-from sphi_test import test_voice
 
 from telegram import Update, ParseMode, Bot, ChatAction, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 from telegram.ext import CallbackContext
 from setup import TOKEN, PROXY
 from telegram.ext import Filters
 from telegram.error import TimedOut
-from telegram import ChatAction, Update
 
 bot = Bot(
     token=TOKEN,
@@ -30,6 +29,9 @@ def command_start(update: Update, context: CallbackContext):
     update.message.reply_text(f'Hi, {update.effective_user.first_name}!')
     update.message.reply_text('Please, type <b>/help</b> to see the list of commands.',
                               parse_mode=ParseMode.HTML)
+    pathlib.Path(f"{update.message.chat_id}/personal").mkdir(parents=True, exist_ok=True)
+    pathlib.Path(f"{update.message.chat_id}/voices").mkdir(parents=True, exist_ok=True)
+    update.message.reply_text('Choose the processing model type:', reply_markup=keyboard.get_model_type_keyboard())
     return update.effective_user.first_name
 
 
@@ -60,7 +62,7 @@ def voice_to_phonemes(update: Update, context: CallbackContext) -> list:  # ЧА
     phonemes = proc.get_phonemes(wav_path)
     update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
     proc.get_words(wav_path)
-    update.effective_message.reply_text(proc.levenshtein_distance(phonemes, 'speech'))
+    update.effective_message.reply_text(proc.levenshtein_distance_sphinx(phonemes, 'speech'))
     os.remove(file_path)
     return phonemes
 

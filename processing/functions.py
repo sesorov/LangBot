@@ -1,8 +1,147 @@
 import os
 import numpy as np
+import librosa
+import soundfile as sf
 
 from os import path
 from pocketsphinx.pocketsphinx import *
+from telegram import Update, ParseMode, Bot, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
+from telegram.ext import CallbackContext
+from setup import TOKEN, PROXY
+from study.dict_controller import *
+from datetime import datetime, timezone
+from pathlib import Path
+from study.inline_handler import InlineKeyboardFactory as keyboard
+from azure_speech.analysis import Analysis
+
+bot = Bot(
+    token=TOKEN,
+    base_url=PROXY,  # delete it if connection via VPN
+)
+
+
+def handle_voice(update: Update, context: CallbackContext):
+    chat_id = update.message.chat.id
+
+    # Getting current user state
+    try:
+        user = unpack_user_data(chat_id)
+        if user.is_testing:
+            voice_analyze_hmm(update, user.phone_dict)
+            display_question(update)
+            return
+    except FileNotFoundError:
+        # User hasn't yet started the test
+        pass
+    update.effective_message.reply_text(text='You need to begin a test firstly to check your pronunciation.\n' +
+                                             'Please, choose the sounds to test:',
+                                        reply_markup=keyboard.get_phone_type_keyboard())
+
+
+def display_question(update: Update):
+    chat_id = update.effective_message.chat_id
+    user = unpack_user_data(chat_id)
+    try:
+        current = user.phone_dict.__next__()
+        update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['example']}")
+        user.save_data()
+    except StopIteration:
+        user.is_testing = False
+        user.save_data()
+        update.effective_message.reply_text(text='This is the end of the test.')
+
+
+def unpack_phone_dict(chat_id):
+    import pickle
+
+    with open(f"./{chat_id}/personal/phone_dict.pkl", 'rb') as load:
+        return pickle.load(load)
+
+
+def unpack_user_data(chat_id):
+    import pickle
+
+    with open(f"./{chat_id}/personal/user.pkl", 'rb') as load:
+        return pickle.load(load)
+
+
+def get_user_test_data(chat_id):
+    datafile = Path(f"./{chat_id}/personal/testing.json")
+    user_data = {}
+    if datafile.is_file():
+        with open(datafile, 'r') as handle:
+            user_data = json.load(handle)
+    return user_data
+
+
+def update_user_test_data(chat_id, data: dict):
+    datafile = Path(f"./{chat_id}/personal/testing.json")
+    user_data = {}
+    if datafile.is_file():
+        with open(datafile, 'r') as handle:
+            user_data = json.load(handle)
+    user_data.update(data)
+    with open(datafile, 'w+') as handle:
+        json.dump(user_data, handle, indent=4)
+
+
+def voice_analyze_neural(update: Update, example_word: str = None):
+    if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
+        return []
+    chat_id = update.message.chat.id
+    file_path = f"{chat_id}\\voices\\{update.message.message_id}.ogg"
+    wav_path = f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav'
+
+    update.message.voice.get_file().download(custom_path=file_path)
+
+    data, sample_rate = librosa.load(file_path, sr=16000, mono=True)
+    sf.write(wav_path, data, sample_rate)
+
+    if example_word:
+        analysis = Analysis(chat_id)
+        result = analysis.analyse_and_save(wav_path, example_word)
+        update.effective_message.reply_text(f"Pronunciation score: {result['pronunciation_score']} (higher is better)" +
+                                            f"\nAccuracy score: {result['accuracy_score']}" +
+                                            f"\nCompleteness score: {result['completeness_score']}" +
+                                            f"\nFluency score: {result['fluency_score']}" +
+                                            f"\nError type: {result['error_type']}" +
+                                            f"\nPhonemes list: {' '.join(result['phonemes'])}")
+    os.remove(file_path)
+
+
+def voice_analyze_hmm(update: Update, phone_dict: PhoneDict):
+    example_word = phone_dict.current_example_word
+    target_phone = phone_dict.current_phone
+    if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
+        return []
+    chat_id = update.message.chat.id
+    file_path = f"{chat_id}\\voices\\{update.message.message_id}.ogg"
+    wav_path = f'F:\\LangBot\\myprosody\\dataset\\audioFiles\\{update.message.message_id}.wav'
+
+    update.message.voice.get_file().download(custom_path=file_path)
+
+    data, sample_rate = librosa.load(file_path, sr=16000, mono=True)
+    sf.write(wav_path, data, sample_rate)
+
+    phonemes = get_phonemes(wav_path)
+    update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
+    if example_word:
+        update.effective_message.reply_text(
+            f"Rate: {levenshtein_distance_sphinx(phonemes, example_word)} (lower is better)")
+    if not is_correct_phone(phonemes, target_phone):
+        update.effective_message.reply_text(phone_dict.get_current()['help'])
+    os.remove(file_path)
+    return phonemes
+
+
+def is_correct_phone(test_phonemes, target_phoneme):
+    for phone in test_phonemes:
+        score = levenshtein_distance(phone, target_phoneme)
+        if score == 0:
+            return True
+        if score < 2:
+            return False
+    return False
 
 
 def get_phonemes(voice_path: str) -> list:
@@ -80,7 +219,40 @@ def get_words(voice_path: str) -> None:
             print('Best hypothesis segments: ', [(seg.word, seg.prob) for seg in decoder.seg()])
 
 
-def levenshtein_distance(test_phonemes: list, word: str):
+def levenshtein_distance(test_sequence: list or str, target_sequence: list or str):
+    test_sequence = list(test_sequence)
+    target_sequence = list(target_sequence)
+
+    try:
+        test_sequence.remove('SIL')
+    except ValueError:
+        pass
+
+    size_x = len(test_sequence) + 1
+    size_y = len(target_sequence) + 1
+    matrix = np.zeros((size_x, size_y))
+
+    for x in range(size_x):
+        matrix[x, 0] = x
+    for y in range(size_y):
+        matrix[0, y] = y
+
+    for x in range(1, size_x):
+        for y in range(1, size_y):
+            if test_sequence[x - 1] == target_sequence[y - 1]:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1,  # deletion
+                    matrix[x - 1, y - 1],  # replacement
+                    matrix[x, y - 1] + 1)  # addition
+            else:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1,  # deletion
+                    matrix[x - 1, y - 1] + 1,  # replacement
+                    matrix[x, y - 1] + 1)  # addition
+    return matrix[size_x - 1, size_y - 1]
+
+
+def levenshtein_distance_sphinx(test_phonemes: list, word: str):
     # setting up the model
     model_path = "custom_model_en_us-v52/en-us"
     config = Decoder.default_config()
@@ -94,25 +266,4 @@ def levenshtein_distance(test_phonemes: list, word: str):
     test_phonemes.remove('SIL')
     correct = decoder.lookup_word(word).split()
 
-    size_x = len(test_phonemes) + 1
-    size_y = len(correct) + 1
-    matrix = np.zeros((size_x, size_y))
-
-    for x in range(size_x):
-        matrix[x, 0] = x
-    for y in range(size_y):
-        matrix[0, y] = y
-
-    for x in range(1, size_x):
-        for y in range(1, size_y):
-            if test_phonemes[x - 1] == correct[y - 1]:
-                matrix[x, y] = min(
-                    matrix[x - 1, y] + 1,  # deletion
-                    matrix[x - 1, y - 1],  # replacement
-                    matrix[x, y - 1] + 1)  # addition
-            else:
-                matrix[x, y] = min(
-                    matrix[x - 1, y] + 1,  # deletion
-                    matrix[x - 1, y - 1] + 1,  # replacement
-                    matrix[x, y - 1] + 1)  # addition
-    return matrix[size_x - 1, size_y - 1]
+    return levenshtein_distance(test_phonemes, correct)
