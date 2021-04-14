@@ -12,6 +12,7 @@ from study.dict_controller import *
 from datetime import datetime, timezone
 from pathlib import Path
 from study.inline_handler import InlineKeyboardFactory as keyboard
+from study.inline_handler import CALLBACK_BUTTON_EACH, CALLBACK_BUTTON_COMPLEX, CALLBACK_BUTTON_SURVEY
 from azure_speech.analysis import Analysis
 
 bot = Bot(
@@ -27,15 +28,18 @@ def handle_voice(update: Update, context: CallbackContext):
     try:
         user = unpack_user_data(chat_id)
         if user.is_testing:
-            voice_analyze_hmm(update, user.phone_dict)
+            if user.model_type:
+                voice_analyze_neural(update, user.phone_dict)
+            else:
+                voice_analyze_hmm(update, user.phone_dict)
             display_question(update)
             return
     except FileNotFoundError:
         # User hasn't yet started the test
         pass
-    update.effective_message.reply_text(text='You need to begin a test firstly to check your pronunciation.\n' +
-                                             'Please, choose the sounds to test:',
-                                        reply_markup=keyboard.get_phone_type_keyboard())
+    update.effective_message.reply_text(text='You need to be in learning mode to check your pronunciation.\n' +
+                                             'Please, choose the learning mode:',
+                                        reply_markup=keyboard.get_learn_mode_keyboard())
 
 
 def display_question(update: Update):
@@ -65,27 +69,20 @@ def unpack_user_data(chat_id):
         return pickle.load(load)
 
 
-def get_user_test_data(chat_id):
-    datafile = Path(f"./{chat_id}/personal/testing.json")
-    user_data = {}
-    if datafile.is_file():
+def update_user_test_data(chat_id, data: dict, name: str):
+    datafile = Path(f"./{chat_id}/personal/{name}.json")
+    user_data = []
+    try:
         with open(datafile, 'r') as handle:
             user_data = json.load(handle)
-    return user_data
-
-
-def update_user_test_data(chat_id, data: dict):
-    datafile = Path(f"./{chat_id}/personal/testing.json")
-    user_data = {}
-    if datafile.is_file():
-        with open(datafile, 'r') as handle:
-            user_data = json.load(handle)
-    user_data.update(data)
+    except FileNotFoundError:
+        pass
+    user_data.append(data)
     with open(datafile, 'w+') as handle:
         json.dump(user_data, handle, indent=4)
 
 
-def voice_analyze_neural(update: Update, example_word: str = None):
+def voice_analyze_neural(update: Update, phone_dict: PhoneDict):
     if (datetime.now(timezone.utc) - update.effective_message.date).days > 3:
         return []
     chat_id = update.message.chat.id
@@ -97,14 +94,26 @@ def voice_analyze_neural(update: Update, example_word: str = None):
     data, sample_rate = librosa.load(file_path, sr=16000, mono=True)
     sf.write(wav_path, data, sample_rate)
 
+    example_word = phone_dict.current_example_word
+    phone = phone_dict.current_phone
+
     if example_word:
         analysis = Analysis(chat_id)
         result = analysis.analyse_and_save(wav_path, example_word)
+        update_user_test_data(chat_id, data={'score': result['pronunciation_score'],
+                                             'accuracy': result['accuracy_score'],
+                                             'complereness': result['completeness_score'],
+                                             'fluency': result['fluency_score'],
+                                             'error_type': result['error_type'][0],
+                                             'phonemes': result['phonemes'],
+                                             'phone': phone,
+                                             'attempt': phone_dict.current_attempt},
+                              name='neural')
         update.effective_message.reply_text(f"Pronunciation score: {result['pronunciation_score']} (higher is better)" +
                                             f"\nAccuracy score: {result['accuracy_score']}" +
                                             f"\nCompleteness score: {result['completeness_score']}" +
                                             f"\nFluency score: {result['fluency_score']}" +
-                                            f"\nError type: {result['error_type']}" +
+                                            f"\nError type: {result['error_type'][0]}" +
                                             f"\nPhonemes list: {' '.join(result['phonemes'])}")
     os.remove(file_path)
 
@@ -124,23 +133,25 @@ def voice_analyze_hmm(update: Update, phone_dict: PhoneDict):
     sf.write(wav_path, data, sample_rate)
 
     phonemes = get_phonemes(wav_path)
-    update.effective_message.reply_text(f"speech: " + ' '.join(phonemes))
-    if example_word:
-        update.effective_message.reply_text(
-            f"Rate: {levenshtein_distance_sphinx(phonemes, example_word)} (lower is better)")
-    if not is_correct_phone(phonemes, target_phone):
+    update.effective_message.reply_text(f"Speech: " + ' '.join(phonemes))
+
+    score = levenshtein_distance_sphinx(phonemes, example_word)
+    is_correct = is_correct_phone(phonemes, target_phone)
+    update.effective_message.reply_text(f"Rate: {score} (lower is better)")
+    if not is_correct:
+        update.effective_message.reply_text('Mispronunciation detected. Here are some tips:')
         update.effective_message.reply_text(phone_dict.get_current()['help'])
+    update_user_test_data(chat_id, data={'phone': target_phone, 'example': example_word,
+                                         'score': score, 'phoneme_correct': is_correct,
+                                         'attempt': phone_dict.current_attempt}, name='hmm')
     os.remove(file_path)
     return phonemes
 
 
 def is_correct_phone(test_phonemes, target_phoneme):
     for phone in test_phonemes:
-        score = levenshtein_distance(phone, target_phoneme)
-        if score == 0:
+        if levenshtein_distance(phone, target_phoneme) == 0:
             return True
-        if score < 2:
-            return False
     return False
 
 
@@ -225,6 +236,7 @@ def levenshtein_distance(test_sequence: list or str, target_sequence: list or st
 
     try:
         test_sequence.remove('SIL')
+        test_sequence.remove('+SPN+')
     except ValueError:
         pass
 
