@@ -98,7 +98,7 @@ class InlineCallback:
             user = proc.unpack_user_data(chat_id)
             user.mode = CALLBACK_BUTTON_COMPLEX
             sample = PhoneDict()  # used only for accessing JSON file to get 5 random phonemes next line
-            rnd_5 = PhoneDict(custom_dict=sample.get_n_random(5), iter_type=0)
+            rnd_5 = PhoneDict(custom_dict=sample.get_n_random(5), iter_type=0, one_example=True)
             user.phone_dict = rnd_5
             user.is_testing = True
             user.save_data()
@@ -109,7 +109,7 @@ class InlineCallback:
             user = proc.unpack_user_data(chat_id)
             user.mode = CALLBACK_BUTTON_COMPLEX
             sample = PhoneDict()  # used only for accessing JSON file
-            rnd_3c_3v = PhoneDict(custom_dict=sample.get_n_random(n_consonants=3, n_vowels=3, one_example=True))
+            rnd_3c_3v = PhoneDict(custom_dict=sample.get_n_random(n_consonants=3, n_vowels=3), one_example=True)
             user.phone_dict = rnd_3c_3v
             user.is_testing = True
             user.save_data()

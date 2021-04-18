@@ -5,7 +5,6 @@ tmp
 .vscode
 venv
 *.wav
-*.ogg
 sphi_test.py
 test.py
 test_p.py
