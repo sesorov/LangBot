@@ -22,13 +22,13 @@ class PhoneDict:
         # Dict parameters
         self.phone_type = phone_type  # 0 - consonants, 1 - vowels
         self.iter_type = iter_type  # 0 - examples, 1 - phones
-        self.auto_next = auto_next
-        self.one_example = one_example
+        self.auto_next = auto_next  # True - iterator will go to the next phoneme's examples if finished with current
+        self.one_example = one_example  # True - there will only be one example for each phoneme (chosen randomly)
 
         # Get data not to access file multiple times
         # Custom dict could be used instead of standard consonants & vowels system
         self.data = custom_dict if custom_dict else self.__load_dict()
-        self.is_custom = custom_dict is not None
+        self.is_custom = custom_dict is not None    # Use another PhoneDict get_n_random() func
 
     def __iter__(self):
         return self

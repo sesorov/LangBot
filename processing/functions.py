@@ -2,6 +2,7 @@ import os
 import numpy as np
 import librosa
 import soundfile as sf
+import requests
 
 from os import path
 from pocketsphinx.pocketsphinx import *
@@ -48,10 +49,51 @@ def display_question(update: Update):
     try:
         current = user.phone_dict.__next__()
         update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['example']}")
+        send_voice(chat_id, audio=f"./sources/samples/{current['phone']}.ogg",
+                   caption=f"Here is an example of {current['phone']}")
         user.save_data()
     except StopIteration:
         user.save_data()
         update.effective_message.reply_text(text='This is the end of the test.')
+
+
+def send_voice(chat_id, audio, caption):
+    if not audio.endswith('ogg'):
+        data, sample_rate = librosa.load(audio, sr=16000, mono=True)
+        sf.write(f"{os.path.dirname(audio)}/{Path(audio).stem}.ogg", data, sample_rate)
+        audio = f"{os.path.dirname(audio)}/{Path(audio).stem}.ogg"
+    with open(audio, 'rb') as handle_audio:
+        data = {
+            'chat_id': chat_id,
+            'caption': caption,
+            'parse_mode': 'HTML'
+        }
+        files = {
+            'audio': (f"{Path(audio).stem}.ogg", handle_audio.read())
+        }
+        response = requests.post(
+            "https://api.telegram.org/bot{token}/sendAudio".format(token=bot.token, chat_id=chat_id),
+            data=data, files=files).json()
+        return response
+
+
+def send_audio(chat_id, audio, title, caption):
+    with open(audio, 'rb') as handle_audio:
+        payload = {
+            'chat_id': chat_id,
+            'title': title,
+            'caption': caption,
+            'performer': 'bot',
+            'parse_mode': 'HTML'
+        }
+        files = {
+            'audio': handle_audio.read(),
+        }
+        response = requests.post(
+            "https://api.telegram.org/bot{token}/sendAudio".format(token=bot.token),
+            data=payload,
+            files=files).json()
+        return response
 
 
 def unpack_user_data(chat_id):
