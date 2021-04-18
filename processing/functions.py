@@ -50,16 +50,8 @@ def display_question(update: Update):
         update.effective_message.reply_text(text=f"[{current['phone']}] Pronounce: {current['example']}")
         user.save_data()
     except StopIteration:
-        user.is_testing = False
         user.save_data()
         update.effective_message.reply_text(text='This is the end of the test.')
-
-
-def unpack_phone_dict(chat_id):
-    import pickle
-
-    with open(f"./{chat_id}/personal/phone_dict.pkl", 'rb') as load:
-        return pickle.load(load)
 
 
 def unpack_user_data(chat_id):
