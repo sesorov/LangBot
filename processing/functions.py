@@ -53,8 +53,13 @@ def display_question(update: Update):
                    caption=f"Here is an example of {current['phone']}")
         user.save_data()
     except StopIteration:
-        user.save_data()
-        update.effective_message.reply_text(text='This is the end of the test.')
+        out = user.analyze_neural(output_type=0) if user.model_type else user.analyze_hmm(output_type=0)
+        if out:
+            update.effective_message.reply_text(text='This is the end of the test.')
+            update.effective_message.reply_text(out)
+        else:
+            update.effective_message.reply_text(text='OK, got your results. Let\'s take another attempt:')
+            display_question(update)
 
 
 def send_voice(chat_id, audio, caption):
