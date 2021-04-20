@@ -83,7 +83,8 @@ class Analysis:
                 data = json.load(handle)
                 for entry in data:
                     if entry['Words'][0]['Word'] == recognized_word:
-                        phonemes_scores = {a['Phoneme'].upper(): a['PronunciationAssessment']['AccuracyScore']
+                        phonemes_scores = {a['Phoneme'].upper().replace('AX', 'AH'):
+                                           a['PronunciationAssessment']['AccuracyScore']
                                            for a in entry['Words'][0]['Phonemes']}
                         return phonemes_scores
         except FileNotFoundError:
