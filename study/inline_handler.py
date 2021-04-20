@@ -9,9 +9,9 @@ from study.user import User
 CALLBACK_BUTTON_HMM = "model_hmm_sphinx"
 CALLBACK_BUTTON_NEURAL = "model_neural_azure"
 
-CALLBACK_BUTTON_EACH = "test_each_phoneme"
-CALLBACK_BUTTON_COMPLEX = "test_random_5"
-CALLBACK_BUTTON_SURVEY = "test_3c_3v"
+CALLBACK_BUTTON_EACH = "each phoneme"
+CALLBACK_BUTTON_COMPLEX = "complex"
+CALLBACK_BUTTON_SURVEY = "survey"
 
 CALLBACK_BUTTON_CONSONANTS = "test_consonants"
 CALLBACK_BUTTON_VOWELS = "test_vowels"
@@ -107,7 +107,7 @@ class InlineCallback:
 
         elif data == CALLBACK_BUTTON_SURVEY:
             user = proc.unpack_user_data(chat_id)
-            user.mode = CALLBACK_BUTTON_COMPLEX
+            user.mode = CALLBACK_BUTTON_SURVEY
             sample = PhoneDict()  # used only for accessing JSON file
             rnd_3c_3v = PhoneDict(custom_dict=sample.get_n_random(n_consonants=3, n_vowels=3), one_example=True)
             user.phone_dict = rnd_3c_3v
@@ -143,4 +143,3 @@ class InlineCallback:
             user = proc.unpack_user_data(chat_id)
             user.is_testing = False
             user.save_data()
-            #proc.summary_test(chat_id)
