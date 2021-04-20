@@ -30,20 +30,26 @@ class Analysis:
 
         # save data to json
         try:
+            data = []
             with open(self.json_path, 'r') as handle:
                 data = json.load(handle)
-            data.append(json.loads(result.json)['NBest'])
+            data.append(json.loads(result.json)['NBest'][0])
             with open(self.json_path, 'w') as handle:
                 json.dump(data, handle, indent=4)
         except FileNotFoundError:
             with open(self.json_path, 'w+') as handle:
-                data = json.loads(result.json)['NBest']
+                data.append(json.loads(result.json)['NBest'][0])
                 json.dump(data, handle, indent=4)
 
         phonemes = []
         for word in pronunciation_assessment_result.words:
             for _phoneme in word.phonemes:
-                phonemes.append(_phoneme.phoneme.upper())
+                phone = _phoneme.phoneme
+                # Normalize phonemes
+                if phone.upper() == 'AX':
+                    phone = 'AH'
+
+                phonemes.append(phone.upper())
 
         return {
             'pronunciation_score': pronunciation_score,
@@ -52,6 +58,7 @@ class Analysis:
             'fluency_score': pronunciation_assessment_result.fluency_score,
             'words': [word.word for word in pronunciation_assessment_result.words],
             'phonemes': phonemes,
+            'phonemes_scores': self.get_phonemes_scores(reference_text),
             'error_type': [word.error_type for word in pronunciation_assessment_result.words]
         }
 
@@ -62,9 +69,25 @@ class Analysis:
                 for entry in data:
                     if entry['Words'][0]['Word'] == recognized_word:
                         phonemes = [a['Phoneme'].upper() for a in entry['Words'][0]['Phonemes']]
+                        for i, phone in enumerate(phonemes):
+                            # Normalize phonemes
+                            if phone.upper() == 'AX':
+                                phonemes[i] = 'AH'
                         return phonemes
         except FileNotFoundError:
             return []
+
+    def get_phonemes_scores(self, recognized_word):
+        try:
+            with open(self.json_path, 'r') as handle:
+                data = json.load(handle)
+                for entry in data:
+                    if entry['Words'][0]['Word'] == recognized_word:
+                        phonemes_scores = {a['Phoneme'].upper(): a['PronunciationAssessment']['AccuracyScore']
+                                           for a in entry['Words'][0]['Phonemes']}
+                        return phonemes_scores
+        except FileNotFoundError:
+            return False
 
     def get_recognized_word(self, voice_path):
         """performs one-shot speech recognition with input from an audio file"""

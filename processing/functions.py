@@ -136,24 +136,32 @@ def voice_analyze_neural(update: Update, phone_dict: PhoneDict):
     example_word = phone_dict.current_example_word
     phone = phone_dict.current_phone
 
-    if example_word:
-        analysis = Analysis(chat_id)
-        result = analysis.analyse_and_save(wav_path, example_word)
-        update_user_test_data(chat_id, data={'score': result['pronunciation_score'],
-                                             'accuracy': result['accuracy_score'],
-                                             'complereness': result['completeness_score'],
-                                             'fluency': result['fluency_score'],
-                                             'error_type': result['error_type'][0],
-                                             'phonemes': result['phonemes'],
-                                             'phone': phone,
-                                             'attempt': phone_dict.current_attempt},
-                              name='neural')
-        update.effective_message.reply_text(f"Pronunciation score: {result['pronunciation_score']} (higher is better)" +
-                                            f"\nAccuracy score: {result['accuracy_score']}" +
-                                            f"\nCompleteness score: {result['completeness_score']}" +
-                                            f"\nFluency score: {result['fluency_score']}" +
-                                            f"\nError type: {result['error_type'][0]}" +
-                                            f"\nPhonemes list: {' '.join(result['phonemes'])}")
+    analysis = Analysis(chat_id)
+    result = analysis.analyse_and_save(wav_path, example_word)
+    update_user_test_data(chat_id, data={'score': result['pronunciation_score'],
+                                         'accuracy': result['accuracy_score'],
+                                         'complereness': result['completeness_score'],
+                                         'fluency': result['fluency_score'],
+                                         'error_type': result['error_type'][0],
+                                         'phonemes': result['phonemes'],
+                                         'phonemes_scores': result['phonemes_scores'],
+                                         'phone': phone,
+                                         'attempt': phone_dict.current_attempt},
+                          name='neural')
+    update.effective_message.reply_text(f"Pronunciation score: {result['pronunciation_score']} (higher is better)" +
+                                        f"\nAccuracy score: {result['accuracy_score']}" +
+                                        f"\nCompleteness score: {result['completeness_score']}" +
+                                        f"\nFluency score: {result['fluency_score']}" +
+                                        f"\nError type: {result['error_type'][0]}" +
+                                        f"\nPhonemes list: {' '.join(result['phonemes'])}")
+    if result['phonemes_scores'][phone] < 90:
+        update.effective_message.reply_text('Mispronunciation detected. Here are some tips:')
+        update.effective_message.reply_text(phone_dict.get_current()['help'])
+
+    mispronounced = [phone for phone, res in result['phonemes_scores'].items() if res < 90]
+    if mispronounced:
+        update.effective_message.reply_text('Warning: pay attention to these phonemes, mispronunciation detected: '
+                                            + ', '.join(mispronounced))
     os.remove(file_path)
 
 
