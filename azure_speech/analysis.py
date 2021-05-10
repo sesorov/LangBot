@@ -1,8 +1,8 @@
 import azure.cognitiveservices.speech as speechsdk
 import json
 
-SPEECH_KEY = "09205fb8bb7a4d8bb5069d592c09596d"
-SERVICE_REGION = "westeurope"
+SPEECH_KEY = "X"
+SERVICE_REGION = "X"
 
 
 class Analysis:
